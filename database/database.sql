@@ -1,0 +1,5 @@
+-- Active: 1746806568751@@127.0.0.1@3307
+CREATE DATABASE golang
+    DEFAULT CHARACTER SET = 'utf8mb4';
+
+    USE golang;

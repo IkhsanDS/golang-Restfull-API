@@ -1,0 +1,23 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go build
+*.test
+*.out
+
+# Vendor & dependencies
+/vendor/
+/bin/
+/dist/
+
+# IDE & system
+.vscode/
+.idea/
+.DS_Store
+
+# Go module cache
+go.sum

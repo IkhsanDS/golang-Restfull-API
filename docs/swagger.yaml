@@ -1,0 +1,128 @@
+basePath: /
+definitions:
+  controller.createTodoReq:
+    properties:
+      title:
+        minLength: 3
+        type: string
+    required:
+    - title
+    type: object
+  controller.updateTodoReq:
+    properties:
+      completed:
+        type: boolean
+      title:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Contoh struktur modular dengan Gin + Swagger
+  title: Gin Modular API
+  version: "1.0"
+paths:
+  /api/v1/todos:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: List todos
+      tags:
+      - todos
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/controller.createTodoReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create todo
+      tags:
+      - todos
+  /api/v1/todos/{id}:
+    delete:
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Delete todo
+      tags:
+      - todos
+    get:
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get todo by ID
+      tags:
+      - todos
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Todo ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/controller.updateTodoReq'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update todo
+      tags:
+      - todos
+schemes:
+- http
+swagger: "2.0"
