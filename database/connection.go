@@ -2,30 +2,39 @@ package database
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-func DSN() string {
-	host := getEnv("DB_HOST", "localhost")
-	port := getEnv("DB_PORT", "3307")
-	user := getEnv("DB_USER", "root")
-	pass := getEnv("DB_PASSWORD", "")
-	name := getEnv("DB_NAME", "golang")
+var DB *gorm.DB
 
-	return fmt.Sprintf(
-		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		user, pass, host, port, name,
-	)
+func Connect() {
+	user := getenv("DB_USER", "root")
+	pass := getenv("DB_PASS", "")
+	host := getenv("DB_HOST", "localhost")
+	port := getenv("DB_PORT", "3307")
+	name := getenv("DB_NAME", "golang")
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&charset=utf8mb4&loc=Local",
+		user, pass, host, port, name)
+
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("failed connect db: %v", err)
+	}
+	sqlDB, _ := db.DB()
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(50)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	DB = db
 }
 
-func Connect() (*gorm.DB, error) {
-	return gorm.Open(mysql.Open(DSN()), &gorm.Config{})
-}
-
-func getEnv(k, def string) string {
+func getenv(k, def string) string {
 	if v := os.Getenv(k); v != "" {
 		return v
 	}

@@ -1,27 +1,116 @@
-basePath: /
+basePath: /api/v1
 definitions:
-  controller.createTodoReq:
+  gin.H:
+    additionalProperties: {}
+    type: object
+  handlers.CreateTodoInput:
     properties:
       title:
-        minLength: 3
         type: string
     required:
     - title
     type: object
-  controller.updateTodoReq:
+  handlers.LoginInput:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handlers.RegisterInput:
+    properties:
+      email:
+        type: string
+      name:
+        minLength: 2
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  handlers.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  handlers.UpdateTodoInput:
     properties:
       completed:
         type: boolean
       title:
         type: string
     type: object
+  models.Todo:
+    properties:
+      completed:
+        description: ✅ tinyint(1) + default 0
+        type: boolean
+      createdAt:
+        type: string
+      id:
+        description: ✅ char(36), bukan uuid
+        type: integer
+      title:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  models.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      role:
+        type: string
+      updated_at:
+        type: string
+    type: object
 info:
   contact: {}
-  description: Contoh struktur modular dengan Gin + Swagger
-  title: Gin Modular API
-  version: "1.0"
+  description: Todo API with JWT Auth, RBAC, and pagination.
+  title: Todo API
+  version: "1.1"
 paths:
-  /api/v1/todos:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Login payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.TokenResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gin.H'
+      summary: Login
+      tags:
+      - auth
+  /auth/me:
     get:
       produces:
       - application/json
@@ -29,23 +118,27 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              additionalProperties: true
-              type: object
-            type: array
-      summary: List todos
+            $ref: '#/definitions/models.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/gin.H'
+      security:
+      - BearerAuth: []
+      summary: Get current user
       tags:
-      - todos
+      - auth
+  /auth/register:
     post:
       consumes:
       - application/json
       parameters:
-      - description: payload
+      - description: Register payload
         in: body
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/controller.createTodoReq'
+          $ref: '#/definitions/handlers.RegisterInput'
       produces:
       - application/json
       responses:
@@ -57,23 +150,57 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/gin.H'
+      summary: Register new user
+      tags:
+      - auth
+  /todos:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      summary: List todos
+      tags:
+      - todos
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Create payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateTodoInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Todo'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/gin.H'
+      security:
+      - BearerAuth: []
       summary: Create todo
       tags:
       - todos
-  /api/v1/todos/{id}:
+  /todos/{id}:
     delete:
       parameters:
       - description: Todo ID
         in: path
         name: id
         required: true
-        type: string
-      responses:
-        "204":
-          description: No Content
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
       summary: Delete todo
       tags:
       - todos
@@ -83,23 +210,14 @@ paths:
         in: path
         name: id
         required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
+        type: integer
+      produces:
+      - application/json
+      responses: {}
       summary: Get todo by ID
       tags:
       - todos
-    patch:
+    put:
       consumes:
       - application/json
       parameters:
@@ -107,22 +225,25 @@ paths:
         in: path
         name: id
         required: true
-        type: string
-      - description: payload
+        type: integer
+      - description: Update payload
         in: body
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/controller.updateTodoReq'
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
+          $ref: '#/definitions/handlers.UpdateTodoInput'
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
       summary: Update todo
       tags:
       - todos
-schemes:
-- http
+securityDefinitions:
+  BearerAuth:
+    description: 'Format: Bearer {token}'
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

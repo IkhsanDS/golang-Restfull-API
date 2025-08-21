@@ -1,37 +1,55 @@
 package router
 
 import (
-	"github.com/IkhsanDS/golang-api/app"
-	"github.com/IkhsanDS/golang-api/controller"
-	"github.com/IkhsanDS/golang-api/middlewares"
 	"github.com/gin-gonic/gin"
+
+	// PENTING: path harus persis sama dengan module di go.mod
+	"github.com/IkhsanDS/golang-api/handlers"
+	"github.com/IkhsanDS/golang-api/middlewares"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-
-	"gorm.io/gorm"
 )
 
-func Setup(r *gin.Engine, db *gorm.DB) {
-	r.Use(middlewares.CORS())
+func Setup() *gin.Engine {
+	r := gin.Default()
 
-	// wiring service & controller
-	todoSvc := app.NewTodoService(db)
-	todoCtl := controller.NewTodoController(todoSvc)
+	// (opsional) CORS
+	r.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+		c.Header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.Next()
+	})
 
-	// health
-	r.GET("/health", func(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) })
+	// Swagger
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// api v1
+	auth := r.Group("/api/v1/auth")
+
+	// Auth
+	auth.POST("/register", handlers.Register)
+	auth.POST("/login", handlers.Login)
+	auth.GET("/me", middlewares.AuthRequired(), handlers.Me)
+
+	// Todos
 	api := r.Group("/api/v1")
 	{
-		api.POST("/todos", todoCtl.Create)
-		api.GET("/todos", todoCtl.List)
-		api.GET("/todos/:id", todoCtl.Get)
-		api.PATCH("/todos/:id", todoCtl.Update)
-		api.DELETE("/todos/:id", todoCtl.Delete)
+		api.GET("/todos", handlers.GetTodos)
+		api.GET("/todos/:id", handlers.GetTodo)
+		api.POST("/todos", middlewares.AuthRequired(), handlers.CreateTodo)
+		api.PUT("/todos/:id", middlewares.AuthRequired(), handlers.UpdateTodo)
+		api.DELETE("/todos/:id",
+			middlewares.AuthRequired(),
+			middlewares.RequireRoles("admin"),
+			handlers.DeleteTodo,
+		)
 	}
 
-	// swagger
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	r.GET("/health", func(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) })
+	return r
 }
